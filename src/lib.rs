@@ -104,8 +104,8 @@
 //! know what to expect to find in the server's certificate.
 //!
 //! ```no_run
-//! # extern crate rustls;
-//! # extern crate webpki;
+//! # use rustls;
+//! # use webpki;
 //! # use std::sync::Arc;
 //! # let mut config = rustls::ClientConfig::new();
 //! let rc_config = Arc::new(config);
@@ -204,28 +204,28 @@
 // Our dependencies:
 
 // webpki for certificate verification.
-extern crate webpki;
+use webpki;
 
 // *ring* for cryptography.
-extern crate ring;
+use ring;
 
 // untrusted for feeding ring and webpki.
-extern crate untrusted;
+use untrusted;
 
 // sct for validation of stapled certificate transparency SCTs.
-extern crate sct;
+use sct;
 
 // rust-base64 for pemfile module.
-extern crate base64;
+use base64;
 
 // log for logging (optional).
 #[cfg(feature = "logging")]
 #[macro_use]
-extern crate log;
+use log;
 
 #[cfg(not(feature = "logging"))]
 #[macro_use]
-mod compile_out_log {
+mod log {
     macro_rules! trace    ( ($($tt:tt)*) => {{}} );
     macro_rules! debug    ( ($($tt:tt)*) => {{}} );
     macro_rules! info     ( ($($tt:tt)*) => {{}} );

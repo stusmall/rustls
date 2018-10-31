@@ -1,8 +1,8 @@
-use session::SessionRandoms;
-use msgs::handshake::{ServerExtension, SessionID};
-use hash_hs;
-use suites;
-use key;
+use crate::session::SessionRandoms;
+use crate::msgs::handshake::{ServerExtension, SessionID};
+use crate::hash_hs;
+use crate::suites;
+use crate::key;
 
 use std::mem;
 

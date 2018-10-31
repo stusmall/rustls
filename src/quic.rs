@@ -1,9 +1,9 @@
 /// This module contains optional APIs for implementing QUIC TLS.
-use client::{ClientConfig, ClientSession, ClientSessionImpl};
-use msgs::base::Payload;
-use msgs::enums::ExtensionType;
-use msgs::handshake::{ClientExtension, ServerExtension, UnknownExtension};
-use server::{ServerConfig, ServerSession, ServerSessionImpl};
+use crate::client::{ClientConfig, ClientSession, ClientSessionImpl};
+use crate::msgs::base::Payload;
+use crate::msgs::enums::ExtensionType;
+use crate::msgs::handshake::{ClientExtension, ServerExtension, UnknownExtension};
+use crate::server::{ServerConfig, ServerSession, ServerSessionImpl};
 
 use std::sync::Arc;
 use webpki;

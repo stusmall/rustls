@@ -56,7 +56,7 @@ impl HandshakeHash {
             Some(started) => {
                 if started != alg {
                     // hash type is changing
-                    warn!("altered hash to HandshakeHash::start_hash");
+                    crate::log::warn!("altered hash to HandshakeHash::start_hash");
                     return false;
                 }
 

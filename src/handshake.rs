@@ -13,7 +13,7 @@ pub fn check_message(m: &Message,
                      content_types: &[ContentType],
                      handshake_types: &[HandshakeType]) -> Result<(), TLSError> {
     if !content_types.contains(&m.typ) {
-        warn!("Received a {:?} message while expecting {:?}",
+        crate::log::warn!("Received a {:?} message while expecting {:?}",
               m.typ,
               content_types);
         return Err(TLSError::InappropriateMessage {
@@ -24,7 +24,7 @@ pub fn check_message(m: &Message,
 
     if let MessagePayload::Handshake(ref hsp) = m.payload {
         if !handshake_types.is_empty() && !handshake_types.contains(&hsp.typ) {
-            warn!("Received a {:?} handshake message while expecting {:?}",
+            crate::log::warn!("Received a {:?} handshake message while expecting {:?}",
                   hsp.typ,
                   handshake_types);
             return Err(TLSError::InappropriateHandshakeMessage {

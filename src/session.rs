@@ -547,12 +547,12 @@ impl SessionCommon {
                 if self.is_tls13() {
                     self.send_fatal_alert(AlertDescription::DecodeError);
                 } else {
-                    warn!("TLS alert warning received: {:#?}", msg);
+                    crate::log::warn!("TLS alert warning received: {:#?}", msg);
                     return Ok(());
                 }
             }
 
-            error!("TLS alert received: {:#?}", msg);
+            crate::log::error!("TLS alert received: {:#?}", msg);
             Err(TLSError::AlertReceived(alert.description))
         } else {
             Err(TLSError::CorruptMessagePayload(ContentType::Alert))
@@ -776,19 +776,19 @@ impl SessionCommon {
     }
 
     pub fn send_warning_alert(&mut self, desc: AlertDescription) {
-        warn!("Sending warning alert {:?}", desc);
+        crate::log::warn!("Sending warning alert {:?}", desc);
         self.send_warning_alert_no_log(desc);
     }
 
     pub fn send_fatal_alert(&mut self, desc: AlertDescription) {
-        warn!("Sending fatal alert {:?}", desc);
+        crate::log::warn!("Sending fatal alert {:?}", desc);
         let m = Message::build_alert(AlertLevel::Fatal, desc);
         let enc = self.we_encrypting;
         self.send_msg(m, enc);
     }
 
     pub fn send_close_notify(&mut self) {
-        info!("Sending warning alert {:?}", AlertDescription::CloseNotify);
+        crate::log::info!("Sending warning alert {:?}", AlertDescription::CloseNotify);
         self.send_warning_alert_no_log(AlertDescription::CloseNotify);
     }
 
@@ -799,7 +799,7 @@ impl SessionCommon {
         // Mustn't be interleaved with other handshake messages.
         if !self.handshake_joiner.is_empty() {
             let msg = "KeyUpdate received at wrong time".to_string();
-            warn!("{}", msg);
+            crate::log::warn!("{}", msg);
             return Err(TLSError::PeerMisbehavedError(msg));
         }
 

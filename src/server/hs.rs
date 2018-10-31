@@ -217,7 +217,7 @@ impl ExpectClientHello {
 
             sess.alpn_protocol = util::first_in_both(our_protocols, &their_proto_strings);
             if let Some(ref selected_protocol) = sess.alpn_protocol {
-                debug!("Chosen ALPN protocol {:?}", selected_protocol);
+                crate::log::debug!("Chosen ALPN protocol {:?}", selected_protocol);
                 ret.push(ServerExtension::make_alpn(selected_protocol.clone()));
             }
         }
@@ -357,7 +357,7 @@ impl ExpectClientHello {
 
         check_aligned_handshake(sess)?;
 
-        trace!("sending server hello {:?}", sh);
+        crate::log::trace!("sending server hello {:?}", sh);
         self.handshake.transcript.add_message(&sh);
         sess.common.send_msg(sh, false);
 
@@ -421,7 +421,7 @@ impl ExpectClientHello {
             }),
         };
 
-        trace!("Requesting retry {:?}", m);
+        crate::log::trace!("Requesting retry {:?}", m);
         self.handshake.transcript.rollup_for_hrr();
         self.handshake.transcript.add_message(&m);
         sess.common.send_msg(m, false);
@@ -443,7 +443,7 @@ impl ExpectClientHello {
             }),
         };
 
-        trace!("sending encrypted extensions {:?}", ee);
+        crate::log::trace!("sending encrypted extensions {:?}", ee);
         self.handshake.transcript.add_message(&ee);
         sess.common.send_msg(ee, true);
         Ok(())
@@ -476,7 +476,7 @@ impl ExpectClientHello {
             }),
         };
 
-        trace!("Sending CertificateRequest {:?}", m);
+        crate::log::trace!("Sending CertificateRequest {:?}", m);
         self.handshake.transcript.add_message(&m);
         sess.common.send_msg(m, true);
         true
@@ -523,7 +523,7 @@ impl ExpectClientHello {
             }),
         };
 
-        trace!("sending certificate {:?}", c);
+        crate::log::trace!("sending certificate {:?}", c);
         self.handshake.transcript.add_message(&c);
         sess.common.send_msg(c, true);
     }
@@ -556,7 +556,7 @@ impl ExpectClientHello {
             }),
         };
 
-        trace!("sending certificate-verify {:?}", m);
+        crate::log::trace!("sending certificate-verify {:?}", m);
         self.handshake.transcript.add_message(&m);
         sess.common.send_msg(m, true);
         Ok(())
@@ -578,7 +578,7 @@ impl ExpectClientHello {
             }),
         };
 
-        trace!("sending finished {:?}", m);
+        crate::log::trace!("sending finished {:?}", m);
         self.handshake.transcript.add_message(&m);
         self.handshake.hash_at_server_fin = self.handshake.transcript.get_current_hash();
         sess.common.send_msg(m, true);
@@ -634,7 +634,7 @@ impl ExpectClientHello {
             }),
         };
 
-        trace!("sending server hello {:?}", sh);
+        crate::log::trace!("sending server hello {:?}", sh);
         self.handshake.transcript.add_message(&sh);
         sess.common.send_msg(sh, false);
         Ok(())
@@ -748,7 +748,7 @@ impl ExpectClientHello {
             }),
         };
 
-        trace!("Sending CertificateRequest {:?}", m);
+        crate::log::trace!("Sending CertificateRequest {:?}", m);
         self.handshake.transcript.add_message(&m);
         sess.common.send_msg(m, false);
         true
@@ -791,7 +791,7 @@ impl ExpectClientHello {
                         id: &SessionID,
                         resumedata: persist::ServerSessionValue)
                         -> NextStateOrError {
-        debug!("Resuming session");
+        crate::log::debug!("Resuming session");
 
         if resumedata.extended_ms && !self.handshake.using_ems {
             return Err(illegal_param(sess, "refusing to resume without ems"));
@@ -917,7 +917,7 @@ impl ExpectClientHello {
         }
 
         if !client_hello.psk_mode_offered(PSKKeyExchangeMode::PSK_DHE_KE) {
-            warn!("Resumption ignored, DHE_KE not offered");
+            crate::log::warn!("Resumption ignored, DHE_KE not offered");
             self.send_ticket = false;
             chosen_psk_index = None;
             resuming_psk = None;
@@ -972,7 +972,7 @@ impl State for ExpectClientHello {
         let client_hello = extract_handshake!(m, HandshakePayload::ClientHello).unwrap();
         let tls13_enabled = sess.config.supports_version(ProtocolVersion::TLSv1_3);
         let tls12_enabled = sess.config.supports_version(ProtocolVersion::TLSv1_2);
-        trace!("we got a clienthello {:?}", client_hello);
+        crate::log::trace!("we got a clienthello {:?}", client_hello);
 
         if !client_hello.compression_methods.contains(&Compression::Null) {
             sess.common.send_fatal_alert(AlertDescription::IllegalParameter);
@@ -1032,8 +1032,8 @@ impl State for ExpectClientHello {
         // Choose a certificate.
         let mut certkey = {
             let sni_ref = sni.as_ref().map(|dns_name| dns_name.as_ref());
-            trace!("sni {:?}", sni_ref);
-            trace!("sig schemes {:?}", sigschemes_ext);
+            crate::log::trace!("sni {:?}", sni_ref);
+            crate::log::trace!("sig schemes {:?}", sigschemes_ext);
             let certkey = sess.config.cert_resolver.resolve(sni_ref, sigschemes_ext);
             certkey.ok_or_else(|| {
                 sess.common.send_fatal_alert(AlertDescription::AccessDenied);
@@ -1060,7 +1060,7 @@ impl State for ExpectClientHello {
             return Err(incompatible(sess, "no ciphersuites in common"));
         }
 
-        debug!("decided upon suite {:?}", maybe_ciphersuite.as_ref().unwrap());
+        crate::log::debug!("decided upon suite {:?}", maybe_ciphersuite.as_ref().unwrap());
         sess.common.set_suite(maybe_ciphersuite.unwrap());
 
         // Start handshake hash.
@@ -1090,8 +1090,8 @@ impl State for ExpectClientHello {
         let ecpoints_ext = client_hello.get_ecpoints_extension()
             .ok_or_else(|| incompatible(sess, "client didn't describe ec points"))?;
 
-        trace!("namedgroups {:?}", groups_ext);
-        trace!("ecpoints {:?}", ecpoints_ext);
+        crate::log::trace!("namedgroups {:?}", groups_ext);
+        crate::log::trace!("ecpoints {:?}", ecpoints_ext);
 
         if !ecpoints_ext.contains(&ECPointFormat::Uncompressed) {
             sess.common.send_fatal_alert(AlertDescription::IllegalParameter);
@@ -1121,7 +1121,7 @@ impl State for ExpectClientHello {
         if let Some(ticket_ext) = client_hello.get_ticket_extension() {
             if let ClientExtension::SessionTicketOffer(ref ticket) = *ticket_ext {
                 ticket_received = true;
-                debug!("Ticket received");
+                crate::log::debug!("Ticket received");
 
                 let maybe_resume = sess.config
                     .ticketer
@@ -1134,7 +1134,7 @@ impl State for ExpectClientHello {
                                                  &client_hello.session_id,
                                                  maybe_resume.unwrap());
                 } else {
-                    debug!("Ticket didn't decrypt");
+                    crate::log::debug!("Ticket didn't decrypt");
                 }
             }
         }
@@ -1224,12 +1224,12 @@ impl State for ExpectTLS12Certificate {
 
         if cert_chain.is_empty() &&
            !sess.config.verifier.client_auth_mandatory() {
-            debug!("client auth requested but no certificate supplied");
+            crate::log::debug!("client auth requested but no certificate supplied");
             self.handshake.transcript.abandon_client_auth();
             return Ok(self.into_expect_tls12_client_kx(None));
         }
 
-        trace!("certs {:?}", cert_chain);
+        crate::log::trace!("certs {:?}", cert_chain);
 
         sess.config.verifier.verify_client_cert(cert_chain)
             .or_else(|err| {
@@ -1285,7 +1285,7 @@ impl State for ExpectTLS13Certificate {
 
         if cert_chain.is_empty() {
             if !sess.config.verifier.client_auth_mandatory() {
-                debug!("client auth requested but no certificate supplied");
+                crate::log::debug!("client auth requested but no certificate supplied");
                 self.handshake.transcript.abandon_client_auth();
                 return Ok(self.into_expect_tls13_finished());
             }
@@ -1413,7 +1413,7 @@ impl State for ExpectTLS12CertificateVerify {
             return Err(e);
         }
 
-        trace!("client CertificateVerify OK");
+        crate::log::trace!("client CertificateVerify OK");
         sess.client_cert_chain = Some(self.client_cert.take_chain());
 
         self.handshake.transcript.add_message(&m);
@@ -1459,7 +1459,7 @@ impl State for ExpectTLS13CertificateVerify {
             return Err(e);
         }
 
-        trace!("client CertificateVerify OK");
+        crate::log::trace!("client CertificateVerify OK");
         sess.client_cert_chain = Some(self.client_cert.take_chain());
 
         self.handshake.transcript.add_message(&m);
@@ -1493,7 +1493,7 @@ impl State for ExpectTLS12CCS {
         // CCS should not be received interleaved with fragmented handshake-level
         // message.
         if !sess.common.handshake_joiner.is_empty() {
-            warn!("CCS received interleaved with fragmented handshake");
+            crate::log::warn!("CCS received interleaved with fragmented handshake");
             return Err(TLSError::InappropriateMessage {
                 expect_types: vec![ ContentType::Handshake ],
                 got_type: ContentType::ChangeCipherSpec,
@@ -1648,9 +1648,9 @@ impl State for ExpectTLS12Finished {
             let worked = sess.config.session_storage
                 .put(self.handshake.session_id.get_encoding(), value.get_encoding());
             if worked {
-                debug!("Session saved");
+                crate::log::debug!("Session saved");
             } else {
-                debug!("Session not saved");
+                crate::log::debug!("Session not saved");
             }
         }
 
@@ -1710,7 +1710,7 @@ impl ExpectTLS13Finished {
             }),
         };
 
-        trace!("sending new stateless ticket {:?}", m);
+        crate::log::trace!("sending new stateless ticket {:?}", m);
         self.handshake.transcript.add_message(&m);
         sess.common.send_msg(m, true);
     }
@@ -1735,11 +1735,11 @@ impl ExpectTLS13Finished {
                 }),
             };
 
-            trace!("sending new stateful ticket {:?}", m);
+            crate::log::trace!("sending new stateful ticket {:?}", m);
             self.handshake.transcript.add_message(&m);
             sess.common.send_msg(m, true);
         } else {
-            trace!("resumption not available; not issuing ticket");
+            crate::log::trace!("resumption not available; not issuing ticket");
         }
     }
 }
@@ -1760,7 +1760,7 @@ impl State for ExpectTLS13Finished {
         let fin = constant_time::verify_slices_are_equal(&expect_verify_data, &finished.0)
             .map_err(|_| {
                      sess.common.send_fatal_alert(AlertDescription::DecryptError);
-                     warn!("Finished wrong");
+                     crate::log::warn!("Finished wrong");
                      TLSError::DecryptError
                      })
             .map(|_| verify::FinishedMessageVerified::assertion())?;

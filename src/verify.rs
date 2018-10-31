@@ -107,7 +107,7 @@ impl ServerCertVerifier for WebPKIVerifier {
             .map(|_| cert)?;
 
         if !ocsp_response.is_empty() {
-            debug!("Unvalidated OCSP response: {:?}", ocsp_response.to_vec());
+            crate::log::debug!("Unvalidated OCSP response: {:?}", ocsp_response.to_vec());
         }
 
         cert.verify_is_valid_for_dns_name(dns_name)
@@ -381,7 +381,7 @@ pub fn verify_scts(cert: &Certificate,
     for sct in scts {
         match sct::verify_sct(&cert.0, &sct.0, now, logs) {
             Ok(index) => {
-                debug!("Valid SCT signed by {} on {}",
+                crate::log::debug!("Valid SCT signed by {} on {}",
                       logs[index].operated_by, logs[index].description);
                 valid_scts += 1;
             }
@@ -389,7 +389,7 @@ pub fn verify_scts(cert: &Certificate,
                 if e.should_be_fatal() {
                     return Err(TLSError::InvalidSCT(e));
                 }
-                debug!("SCT ignored because {:?}", e);
+                crate::log::debug!("SCT ignored because {:?}", e);
                 last_sct_error = Some(e);
             }
         }
@@ -398,7 +398,7 @@ pub fn verify_scts(cert: &Certificate,
     /* If we were supplied with some logs, and some SCTs,
      * but couldn't verify any of them, fail the handshake. */
     if !logs.is_empty() && !scts.is_empty() && valid_scts == 0 {
-        warn!("No valid SCTs provided");
+        crate::log::warn!("No valid SCTs provided");
         return Err(TLSError::InvalidSCT(last_sct_error.unwrap()));
     }
 

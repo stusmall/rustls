@@ -92,7 +92,7 @@ fn find_session(sess: &mut ClientSessionImpl, dns_name: webpki::DNSNameRef)
     let maybe_value = sess.config.session_persistence.get(&key_buf);
 
     if maybe_value.is_none() {
-        debug!("No cached session for {:?}", dns_name);
+        crate::log::debug!("No cached session for {:?}", dns_name);
         return None;
     }
 
@@ -240,10 +240,10 @@ fn emit_client_hello_for_retry(sess: &mut ClientSessionImpl,
         if resuming.version == ProtocolVersion::TLSv1_2 {
             randomise_sessionid_for_ticket(resuming);
         }
-        debug!("Resuming session");
+        crate::log::debug!("Resuming session");
         (resuming.session_id, resuming.ticket.0.clone(), resuming.version)
     } else {
-        debug!("Not resuming any session");
+        crate::log::debug!("Not resuming any session");
         (SessionID::empty(), Vec::new(), ProtocolVersion::Unknown(0))
     };
 
@@ -423,7 +423,7 @@ fn emit_client_hello_for_retry(sess: &mut ClientSessionImpl,
         emit_fake_ccs(&mut handshake, sess);
     }
 
-    trace!("Sending ClientHello {:#?}", ch);
+    crate::log::trace!("Sending ClientHello {:#?}", ch);
 
     handshake.transcript.add_message(&ch);
     sess.common.send_msg(ch, false);
@@ -448,7 +448,7 @@ fn emit_client_hello_for_retry(sess: &mut ClientSessionImpl,
 
         // Now the client can send encrypted early data
         sess.common.early_traffic = true;
-        trace!("Starting early data traffic");
+        crate::log::trace!("Starting early data traffic");
         sess.common.we_now_encrypting();
     }
 
@@ -504,7 +504,7 @@ fn process_alpn_protocol(sess: &mut ClientSessionImpl,
         !sess.config.alpn_protocols.contains(sess.alpn_protocol.as_ref().unwrap()) {
         return Err(illegal_param(sess, "server sent non-offered ALPN protocol"));
     }
-    debug!("ALPN protocol is {:?}", sess.alpn_protocol);
+    crate::log::debug!("ALPN protocol is {:?}", sess.alpn_protocol);
     Ok(())
 }
 
@@ -528,7 +528,7 @@ impl ExpectServerHello {
                         .to_string()));
                 }
 
-                debug!("Resuming using PSK");
+                crate::log::debug!("Resuming using PSK");
                 // The key schedule has been initialized and set in fill_in_psk()
                 // Server must be using the resumption suite, otherwise set_suite()
                 // in ExpectServerHello::handle() would fail.
@@ -537,7 +537,7 @@ impl ExpectServerHello {
                 return Err(TLSError::PeerMisbehavedError("server selected unoffered psk".to_string()));
             }
         } else {
-            debug!("Not resuming");
+            crate::log::debug!("Not resuming");
             // Discard the early data key schedule.
             sess.early_data.rejected();
             sess.common.early_traffic = false;
@@ -639,7 +639,7 @@ impl State for ExpectServerHello {
 
     fn handle(mut self: Box<Self>, sess: &mut ClientSessionImpl, m: Message) -> NextStateOrError {
         let server_hello = extract_handshake!(m, HandshakePayload::ServerHello).unwrap();
-        trace!("We got ServerHello {:#?}", server_hello);
+        crate::log::trace!("We got ServerHello {:#?}", server_hello);
 
         use crate::ProtocolVersion::{TLSv1_2, TLSv1_3};
         let tls13_supported = sess.config.supports_version(TLSv1_3);
@@ -721,7 +721,7 @@ impl State for ExpectServerHello {
                 .to_string()));
         }
 
-        debug!("Using ciphersuite {:?}", server_hello.cipher_suite);
+        crate::log::debug!("Using ciphersuite {:?}", server_hello.cipher_suite);
         if !sess.common.set_suite(scs.unwrap()) {
             return Err(illegal_param(sess, "server varied selected ciphersuite"));
         }
@@ -762,7 +762,7 @@ impl State for ExpectServerHello {
 
         // Might the server send a ticket?
         let with_tickets = if server_hello.find_extension(ExtensionType::SessionTicket).is_some() {
-            debug!("Server supports tickets");
+            crate::log::debug!("Server supports tickets");
             true
         } else {
             false
@@ -772,13 +772,13 @@ impl State for ExpectServerHello {
         // Might the server send a CertificateStatus between Certificate and
         // ServerKeyExchange?
         if server_hello.find_extension(ExtensionType::StatusRequest).is_some() {
-            debug!("Server may staple OCSP response");
+            crate::log::debug!("Server may staple OCSP response");
             self.may_send_cert_status = true;
         }
 
         // Save any sent SCTs for verification against the certificate.
         if let Some(sct_list) = server_hello.get_sct_list() {
-            debug!("Server sent {:?} SCTs", sct_list.len());
+            crate::log::debug!("Server sent {:?} SCTs", sct_list.len());
 
             if sct_list_is_invalid(sct_list) {
                 let error_msg = "server sent invalid SCT list".to_string();
@@ -791,7 +791,7 @@ impl State for ExpectServerHello {
         let mut abbreviated_handshake = false;
         if let Some(ref resuming) = self.handshake.resuming_session {
             if resuming.session_id == self.handshake.session_id {
-                debug!("Server agreed to resume");
+                crate::log::debug!("Server agreed to resume");
                 abbreviated_handshake = true;
 
                 // Is the server telling lies about the ciphersuite?
@@ -842,7 +842,7 @@ impl ExpectServerHelloOrHelloRetryRequest {
         check_handshake_message(&m, &[HandshakeType::HelloRetryRequest])?;
 
         let hrr = extract_handshake!(m, HandshakePayload::HelloRetryRequest).unwrap();
-        trace!("Got HRR {:?}", hrr);
+        crate::log::trace!("Got HRR {:?}", hrr);
 
         let has_cookie = hrr.get_cookie().is_some();
         let req_group = hrr.get_requested_key_share_group();
@@ -997,7 +997,7 @@ impl State for ExpectTLS13EncryptedExtensions {
 
     fn handle(mut self: Box<Self>, sess: &mut ClientSessionImpl, m: Message) -> NextStateOrError {
         let exts = extract_handshake!(m, HandshakePayload::EncryptedExtensions).unwrap();
-        debug!("TLS1.3 encrypted extensions: {:?}", exts);
+        crate::log::debug!("TLS1.3 encrypted extensions: {:?}", exts);
         self.handshake.transcript.add_message(&m);
 
         validate_encrypted_extensions(sess, &self.hello, exts)?;
@@ -1078,14 +1078,14 @@ impl State for ExpectTLS13Certificate {
 
         // This is only non-empty for client auth.
         if !cert_chain.context.0.is_empty() {
-            warn!("certificate with non-empty context during handshake");
+            crate::log::warn!("certificate with non-empty context during handshake");
             sess.common.send_fatal_alert(AlertDescription::DecodeError);
             return Err(TLSError::CorruptMessagePayload(ContentType::Handshake));
         }
 
         if cert_chain.any_entry_has_duplicate_extension() ||
             cert_chain.any_entry_has_unknown_extension() {
-            warn!("certificate chain contains unsolicited/unknown extension");
+            crate::log::warn!("certificate chain contains unsolicited/unknown extension");
             sess.common.send_fatal_alert(AlertDescription::UnsupportedExtension);
             return Err(TLSError::PeerMisbehavedError("bad cert chain extensions".to_string()));
         }
@@ -1180,7 +1180,7 @@ impl State for ExpectTLS12CertificateStatus {
         let mut status = extract_handshake_mut!(m, HandshakePayload::CertificateStatus).unwrap();
 
         self.server_cert.ocsp_response = status.take_ocsp_response();
-        debug!("Server stapled OCSP response is {:?}", self.server_cert.ocsp_response);
+        crate::log::debug!("Server stapled OCSP response is {:?}", self.server_cert.ocsp_response);
         Ok(self.into_expect_tls12_server_kx())
     }
 }
@@ -1303,7 +1303,7 @@ impl State for ExpectTLS12ServerKX {
         let skx = ServerKXDetails::new(kx_params, decoded_kx.get_sig().unwrap());
 
         if let ServerKeyExchangePayload::ECDHE(ecdhe) = decoded_kx {
-            debug!("ECDHE curve is {:?}", ecdhe.params.curve_params);
+            crate::log::debug!("ECDHE curve is {:?}", ecdhe.params.curve_params);
         }
 
         Ok(self.into_expect_tls12_server_done_or_certreq(skx))
@@ -1354,7 +1354,7 @@ impl State for ExpectTLS13CertificateVerify {
     fn handle(mut self: Box<Self>, sess: &mut ClientSessionImpl, m: Message) -> NextStateOrError {
         let cert_verify = extract_handshake!(m, HandshakePayload::CertificateVerify).unwrap();
 
-        debug!("Server cert is {:?}", self.server_cert.cert_chain);
+        crate::log::debug!("Server cert is {:?}", self.server_cert.cert_chain);
 
         // 1. Verify the certificate chain.
         if self.server_cert.cert_chain.is_empty() {
@@ -1437,7 +1437,7 @@ fn emit_certverify(handshake: &mut HandshakeDetails,
                    client_auth: &mut ClientAuthDetails,
                    sess: &mut ClientSessionImpl) -> Result<(), TLSError> {
     if client_auth.signer.is_none() {
-        trace!("Not sending CertificateVerify, no key");
+        crate::log::trace!("Not sending CertificateVerify, no key");
         handshake.transcript.abandon_client_auth();
         return Ok(());
     }
@@ -1525,7 +1525,7 @@ impl State for ExpectTLS12CertificateRequest {
     fn handle(mut self: Box<Self>, sess: &mut ClientSessionImpl, m: Message) -> NextStateOrError {
         let certreq = extract_handshake!(m, HandshakePayload::CertificateRequest).unwrap();
         self.handshake.transcript.add_message(&m);
-        debug!("Got CertificateRequest {:?}", certreq);
+        crate::log::debug!("Got CertificateRequest {:?}", certreq);
 
         let mut client_auth = ClientAuthDetails::new();
 
@@ -1535,7 +1535,7 @@ impl State for ExpectTLS12CertificateRequest {
         // We only support RSA signing at the moment.  If you don't support that,
         // we're not doing client auth.
         if !certreq.certtypes.contains(&ClientCertificateType::RSASign) {
-            warn!("Server asked for client auth but without RSASign");
+            crate::log::warn!("Server asked for client auth but without RSASign");
             return Ok(self.into_expect_tls12_server_done(client_auth));
         }
 
@@ -1547,12 +1547,12 @@ impl State for ExpectTLS12CertificateRequest {
             sess.config.client_auth_cert_resolver.resolve(&canames, &certreq.sigschemes);
 
         if let Some(mut certkey) = maybe_certkey {
-            debug!("Attempting client auth");
+            crate::log::debug!("Attempting client auth");
             let maybe_signer = certkey.key.choose_scheme(&certreq.sigschemes);
             client_auth.cert = Some(certkey.take_cert());
             client_auth.signer = maybe_signer;
         } else {
-            debug!("Client auth requested but no cert/sigscheme available");
+            crate::log::debug!("Client auth requested but no cert/sigscheme available");
         }
 
         Ok(self.into_expect_tls12_server_done(client_auth))
@@ -1584,14 +1584,14 @@ impl State for ExpectTLS13CertificateRequest {
     fn handle(mut self: Box<Self>, sess: &mut ClientSessionImpl, m: Message) -> NextStateOrError {
         let certreq = &extract_handshake!(m, HandshakePayload::CertificateRequestTLS13).unwrap();
         self.handshake.transcript.add_message(&m);
-        debug!("Got CertificateRequest {:?}", certreq);
+        crate::log::debug!("Got CertificateRequest {:?}", certreq);
 
         // Fortunately the problems here in TLS1.2 and prior are corrected in
         // TLS1.3.
 
         // Must be empty during handshake.
         if !certreq.context.0.is_empty() {
-            warn!("Server sent non-empty certreq context");
+            crate::log::warn!("Server sent non-empty certreq context");
             sess.common.send_fatal_alert(AlertDescription::DecodeError);
             return Err(TLSError::CorruptMessagePayload(ContentType::Handshake));
         }
@@ -1621,13 +1621,13 @@ impl State for ExpectTLS13CertificateRequest {
 
         let mut client_auth = ClientAuthDetails::new();
         if let Some(mut certkey) = maybe_certkey {
-            debug!("Attempting client auth");
+            crate::log::debug!("Attempting client auth");
             let maybe_signer = certkey.key.choose_scheme(&compat_sigschemes);
             client_auth.cert = Some(certkey.take_cert());
             client_auth.signer = maybe_signer;
             client_auth.auth_context = Some(certreq.context.0.clone());
         } else {
-            debug!("Client auth requested but no cert selected");
+            crate::log::debug!("Client auth requested but no cert selected");
         }
 
         Ok(self.into_expect_tls13_certificate(client_auth))
@@ -1722,8 +1722,8 @@ impl State for ExpectTLS12ServerDone {
         let mut st = *self;
         st.handshake.transcript.add_message(&m);
 
-        debug!("Server cert is {:?}", st.server_cert.cert_chain);
-        debug!("Server DNS name is {:?}", st.handshake.dns_name);
+        crate::log::debug!("Server cert is {:?}", st.server_cert.cert_chain);
+        crate::log::debug!("Server DNS name is {:?}", st.handshake.dns_name);
 
         // 1. Verify the cert chain.
         // 2. Verify any SCTs provided with the certificate.
@@ -1871,7 +1871,7 @@ impl State for ExpectTLS12CCS {
         // CCS should not be received interleaved with fragmented handshake-level
         // message.
         if !sess.common.handshake_joiner.is_empty() {
-            warn!("CCS received interleaved with fragmented handshake");
+            crate::log::warn!("CCS received interleaved with fragmented handshake");
             return Err(TLSError::InappropriateMessage {
                 expect_types: vec![ ContentType::Handshake ],
                 got_type: ContentType::ChangeCipherSpec,
@@ -1930,7 +1930,7 @@ fn save_session(handshake: &mut HandshakeDetails,
     }
 
     if handshake.session_id.is_empty() && ticket.is_empty() {
-        debug!("Session not saved: server didn't allocate id or ticket");
+        crate::log::debug!("Session not saved: server didn't allocate id or ticket");
         return;
     }
 
@@ -1955,9 +1955,9 @@ fn save_session(handshake: &mut HandshakeDetails,
                                                      value.get_encoding());
 
     if worked {
-        debug!("Session saved");
+        crate::log::debug!("Session saved");
     } else {
-        debug!("Session not saved");
+        crate::log::debug!("Session not saved");
     }
 }
 
@@ -1995,7 +1995,7 @@ fn emit_certverify_tls13(handshake: &mut HandshakeDetails,
                          client_auth: &mut ClientAuthDetails,
                          sess: &mut ClientSessionImpl) -> Result<(), TLSError> {
     if client_auth.signer.is_none() {
-        debug!("Skipping certverify message (no client scheme/key)");
+        crate::log::debug!("Skipping certverify message (no client scheme/key)");
         return Ok(());
     }
 
@@ -2303,9 +2303,9 @@ impl ExpectTLS13Traffic {
                                                          value.get_encoding());
 
         if worked {
-            debug!("Ticket saved");
+            crate::log::debug!("Ticket saved");
         } else {
-            debug!("Ticket not saved");
+            crate::log::debug!("Ticket not saved");
         }
         Ok(())
     }

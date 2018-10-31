@@ -287,18 +287,18 @@ impl EarlyData {
     }
 
     fn rejected(&mut self) {
-        trace!("EarlyData rejected");
+        crate::log::trace!("EarlyData rejected");
         self.state = EarlyDataState::Rejected;
     }
 
     fn accepted(&mut self) {
-        trace!("EarlyData accepted");
+        crate::log::trace!("EarlyData accepted");
         assert_eq!(self.state, EarlyDataState::Ready);
         self.state = EarlyDataState::Accepted;
     }
 
     fn finished(&mut self) {
-        trace!("EarlyData finished");
+        crate::log::trace!("EarlyData finished");
         self.state = match self.state {
             EarlyDataState::Accepted => EarlyDataState::AcceptedFinished,
             _ => panic!("bad EarlyData state"),
@@ -442,7 +442,7 @@ impl ClientSessionImpl {
         if self.common.is_tls13()
             && msg.is_content_type(ContentType::ChangeCipherSpec)
             && self.is_handshaking() {
-            trace!("Dropping CCS");
+            crate::log::trace!("Dropping CCS");
             return Ok(());
         }
 

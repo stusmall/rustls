@@ -121,7 +121,7 @@ impl ClientHelloDetails {
         for ext in received_exts {
             let ext_type = ext.get_type();
             if !self.sent_extensions.contains(&ext_type) && !allowed_unsolicited.contains(&ext_type) {
-                trace!("Unsolicited extension {:?}", ext_type);
+                crate::log::trace!("Unsolicited extension {:?}", ext_type);
                 return true;
             }
         }

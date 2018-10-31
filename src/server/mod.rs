@@ -307,7 +307,7 @@ impl ServerSessionImpl {
         if self.common.is_tls13()
             && msg.is_content_type(ContentType::ChangeCipherSpec)
             && self.is_handshaking() {
-            trace!("Dropping CCS");
+            crate::log::trace!("Dropping CCS");
             return Ok(());
         }
 

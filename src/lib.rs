@@ -204,27 +204,16 @@
 // Our dependencies:
 
 // webpki for certificate verification.
-use webpki;
-
 // *ring* for cryptography.
-use ring;
-
 // untrusted for feeding ring and webpki.
-use untrusted;
-
 // sct for validation of stapled certificate transparency SCTs.
-use sct;
-
 // rust-base64 for pemfile module.
-use base64;
 
 // log for logging (optional).
 #[cfg(feature = "logging")]
-#[macro_use]
 use log;
 
 #[cfg(not(feature = "logging"))]
-#[macro_use]
 mod log {
     macro_rules! trace    ( ($($tt:tt)*) => {{}} );
     macro_rules! debug    ( ($($tt:tt)*) => {{}} );
@@ -235,7 +224,6 @@ mod log {
 
 mod util;
 #[allow(missing_docs)]
-#[macro_use]
 mod msgs;
 mod error;
 mod rand;

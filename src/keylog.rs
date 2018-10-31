@@ -72,7 +72,7 @@ impl KeyLogFileInner {
             .open(path) {
             Ok(f) => Some(f),
             Err(e) => {
-                warn!("unable to create key log file '{:?}': {}", path, e);
+                crate::log::warn!("unable to create key log file '{:?}': {}", path, e);
                 None
             }
         };
@@ -128,7 +128,7 @@ impl KeyLog for KeyLogFile {
             .try_write(label, client_random, secret) {
             Ok(()) => {},
             Err(e) => {
-                warn!("error writing to key log file: {}", e);
+                crate::log::warn!("error writing to key log file: {}", e);
             }
         }
     }

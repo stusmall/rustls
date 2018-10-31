@@ -8,6 +8,7 @@ description = "Rustls is a modern TLS library written in Rust."
 homepage = "https://github.com/ctz/rustls"
 repository = "https://github.com/ctz/rustls"
 categories = ["network-programming", "cryptography"]
+edition = "2018"
 
 [dependencies]
 untrusted = "0.6.2"

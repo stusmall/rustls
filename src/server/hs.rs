@@ -624,7 +624,7 @@ impl ExpectClientHello {
                          for_resume: bool)
                          -> Result<(), TLSError> {
         let extensions = self.process_extensions(sess, server_key, hello, for_resume)?;
-
+        sess.session_id = Some(self.handshake.session_id);
         let sh = Message {
             typ: ContentType::Handshake,
             version: ProtocolVersion::TLSv1_2,

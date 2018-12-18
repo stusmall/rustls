@@ -90,7 +90,7 @@ impl Random {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, Hash)]
 pub struct SessionID {
     len: usize,
     data: [u8; 32],

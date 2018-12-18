@@ -11,9 +11,15 @@ use std::io;
 use std::net;
 use std::io::{Write, Read, BufReader};
 use std::collections::HashMap;
+use rustls::internal::msgs::handshake::SessionID;
+use std::sync::Mutex;
+use std::collections::hash_map::Entry::Vacant;
+use std::collections::hash_map::Entry::Occupied;
 
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate lazy_static;
 extern crate docopt;
 use docopt::Docopt;
 
@@ -26,6 +32,12 @@ use rustls::{RootCertStore, Session, NoClientAuth, AllowAnyAuthenticatedClient,
 
 // Token for our listening socket.
 const LISTENER: mio::Token = mio::Token(0);
+
+lazy_static!{
+    static ref SESSION_CACHE: Mutex<HashMap<SessionID, usize>> = Mutex::new(HashMap::new());
+}
+
+
 
 // Which mode the server operates in.
 #[derive(Clone)]
@@ -49,6 +61,7 @@ struct TlsServer {
     next_id: usize,
     tls_config: Arc<rustls::ServerConfig>,
     mode: ServerMode,
+
 }
 
 impl TlsServer {
@@ -164,6 +177,7 @@ impl Connection {
 
     /// We're a connection, and we have something to do.
     fn ready(&mut self, poll: &mut mio::Poll, ev: &mio::Event) {
+        info!("We are in ready and our session is {:?}",  self.tls_session.imp.session_id);
         // If we're readable: read some TLS.  Then
         // see if that yielded new plaintext.  Then
         // see if the backend is readable too.
@@ -290,10 +304,29 @@ impl Connection {
     }
 
     fn send_http_response_once(&mut self) {
-        let response = b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nHello world from rustls tlsserver\r\n";
+        let mut session_cache = SESSION_CACHE.lock().unwrap();
+        let session_cache_len = session_cache.len();
+
+        let response = match self.tls_session.imp.session_id {
+            Some(session_id) => {
+                match session_cache.entry(session_id){
+                    Occupied(mut entry) => {
+                        format!("HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nFound existing entry: {}\r\n", entry.get())
+                    }
+                    Vacant(mut entry) => {
+                        entry.insert(session_cache_len + 1 );
+                        format!("HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nNew entity. Giving new ID: {}\r\n", session_cache_len + 1)
+                    }
+                }
+            }
+            None => {
+                String::from("HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nNot trying to finger print\r\n")
+            }
+        };
+
         if !self.sent_http_response {
             self.tls_session
-                .write_all(response)
+                .write_all(response.as_bytes())
                 .unwrap();
             self.sent_http_response = true;
             self.tls_session.send_close_notify();
@@ -530,7 +563,7 @@ fn make_config(args: &Args) -> Arc<rustls::ServerConfig> {
     }
 
     if args.flag_resumption {
-        config.set_persistence(rustls::ServerSessionMemoryCache::new(256));
+        config.set_persistence(rustls::ServerSessionMemoryCache::new(25600));
     }
 
     if args.flag_tickets {

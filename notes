@@ -1,0 +1,3 @@
+ my start command:
+
+ # reset; ./target/debug/examples/tlsserver --verbose --resumption  --certs ./certificate.pem --key key.pem  -p 443 http

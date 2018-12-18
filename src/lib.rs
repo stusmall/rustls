@@ -190,7 +190,6 @@
           unstable_features)]
 #![deny(trivial_casts,
         trivial_numeric_casts,
-        missing_docs,
         unused_import_braces,
         unused_extern_crates,
         unused_qualifications)]

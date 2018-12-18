@@ -156,7 +156,7 @@ impl ServerConfig {
             ticketer: Arc::new(handy::NeverProducesTickets {}),
             alpn_protocols: Vec::new(),
             cert_resolver: Arc::new(handy::FailResolveChain {}),
-            versions: vec![ ProtocolVersion::TLSv1_3, ProtocolVersion::TLSv1_2 ],
+            versions: vec![ProtocolVersion::TLSv1_2 ],
             verifier: client_cert_verifier,
             key_log: Arc::new(NoKeyLog {}),
         }
@@ -230,6 +230,7 @@ pub struct ServerSessionImpl {
     pub error: Option<TLSError>,
     pub state: Option<Box<hs::State + Send + Sync>>,
     pub client_cert_chain: Option<Vec<key::Certificate>>,
+    pub session_id: Option<SessionID>
 }
 
 impl fmt::Debug for ServerSessionImpl {
@@ -252,6 +253,7 @@ impl ServerSessionImpl {
             error: None,
             state: Some(Box::new(hs::ExpectClientHello::new(perhaps_client_auth, extra_exts))),
             client_cert_chain: None,
+            session_id: None
         }
     }
 
@@ -408,7 +410,7 @@ impl ServerSessionImpl {
 #[derive(Debug)]
 pub struct ServerSession {
     // We use the pimpl idiom to hide unimportant details.
-    pub(crate) imp: ServerSessionImpl,
+    pub imp: ServerSessionImpl,
 }
 
 impl ServerSession {
